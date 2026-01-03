@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DEAD_DROP // STEGANO_UNIT</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
+        
+        :root {
+            --void-purple: #8b5cf6;
+            --void-dark: #0f0720;
+        }
+
+        body {
+            background-color: #05020a;
+            color: var(--void-purple);
+            font-family: 'Orbitron', sans-serif;
+            overflow-x: hidden;
+        }
+
+        .noise-bg {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: -1;
+            opacity: 0.05;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+        }
+
+        .panel {
+            background: rgba(15, 7, 32, 0.8);
+            border: 1px solid #3b2063;
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.1);
+            backdrop-filter: blur(5px);
+        }
+
+        .tab-btn {
+            padding: 10px 20px;
+            border-bottom: 2px solid transparent;
+            opacity: 0.5;
+            transition: all 0.3s;
+        }
+        .tab-btn.active {
+            border-color: var(--void-purple);
+            opacity: 1;
+            text-shadow: 0 0 10px var(--void-purple);
+        }
+
+        .void-input {
+            background: #0a0514;
+            border: 1px solid #3b2063;
+            color: #d8b4fe;
+            width: 100%;
+            padding: 10px;
+            outline: none;
+        }
+        .void-input:focus {
+            border-color: var(--void-purple);
+            box-shadow: 0 0 10px rgba(139, 92, 246, 0.2);
+        }
+
+        .btn-void {
+            background: linear-gradient(45deg, #4c1d95, #6d28d9);
+            color: white;
+            border: none;
+            padding: 12px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            transition: transform 0.1s;
+        }
+        .btn-void:hover {
+            transform: scale(1.02);
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.4);
+        }
+
+        .hidden-canvas { display: none; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-4">
+    <div class="noise-bg"></div>
+
+    <div class="w-full max-w-3xl">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold mb-2 tracking-widest">DEAD_DROP</h1>
+            <p class="text-xs text-purple-400 opacity-70">LSB STEGANOGRAPHY // PNG CONTAINER</p>
+        </header>
+
+        <div class="panel p-1 mb-6">
+            <div class="flex border-b border-purple-900">
+                <button class="tab-btn active w-1/2" onclick="switchTab('encode')">HIDE DATA</button>
+                <button class="tab-btn w-1/2" onclick="switchTab('decode')">REVEAL DATA</button>
+            </div>
+
+            <div class="p-6">
+                <!-- ENCODE SECTION -->
+                <div id="encode-panel">
+                    <div class="mb-4">
+                        <label class="block text-xs mb-2 text-purple-300">1. SELECT CARRIER IMAGE (PNG/JPG)</label>
+                        <input type="file" id="encode-file" accept="image/*" class="void-input text-sm">
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-xs mb-2 text-purple-300">2. SECRET MESSAGE</label>
+                        <textarea id="secret-msg" rows="4" class="void-input" placeholder="Enter sensitive data here..."></textarea>
+                    </div>
+
+                    <div class="mb-6">
+                        <label class="block text-xs mb-2 text-purple-300">3. ENCRYPTION PASSWORD (OPTIONAL)</label>
+                        <input type="password" id="encode-pass" class="void-input" placeholder="Leave empty for plain text">
+                    </div>
+
+                    <button onclick="encode()" class="btn-void w-full">INJECT INTO PIXELS</button>
+                </div>
+
+                <!-- DECODE SECTION -->
+                <div id="decode-panel" class="hidden">
+                    <div class="mb-4">
+                        <label class="block text-xs mb-2 text-purple-300">1. UPLOAD CARRIER IMAGE (PNG ONLY)</label>
+                        <input type="file" id="decode-file" accept="image/png" class="void-input text-sm">
+                    </div>
+
+                    <div class="mb-6">
+                        <label class="block text-xs mb-2 text-purple-300">2. DECRYPTION PASSWORD</label>
+                        <input type="password" id="decode-pass" class="void-input" placeholder="Required if set during encryption">
+                    </div>
+
+                    <button onclick="decode()" class="btn-void w-full mb-6">EXTRACT FROM PIXELS</button>
+
+                    <div id="decode-result" class="hidden border border-purple-500 p-4 bg-black bg-opacity-50">
+                        <p class="text-xs text-purple-300 mb-2">DECRYPTED PAYLOAD:</p>
+                        <p id="result-text" class="font-mono text-sm text-white break-all"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="download-area" class="hidden text-center">
+            <p class="text-sm text-green-400 mb-2">INJECTION SUCCESSFUL</p>
+            <a id="download-link" class="text-white underline hover:text-purple-300 cursor-pointer">DOWNLOAD CARRIER.PNG</a>
+            <p class="text-[10px] text-red-500 mt-2">WARNING: DO NOT COMPRESS OR EDIT THIS IMAGE.</p>
+        </div>
+    </div>
+
+    <canvas id="canvas" class="hidden-canvas"></canvas>
+
+    <script>
+        function switchTab(tab) {
+            document.getElementById('encode-panel').classList.toggle('hidden', tab !== 'encode');
+            document.getElementById('decode-panel').classList.toggle('hidden', tab !== 'decode');
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById('download-area').classList.add('hidden');
+            document.getElementById('decode-result').classList.add('hidden');
+        }
+
+        // Utility: Simple XOR Encryption
+        function xorCipher(text, pass) {
+            if (!pass) return text;
+            let result = '';
+            for (let i = 0; i < text.length; i++) {
+                result += String.fromCharCode(text.charCodeAt(i) ^ pass.charCodeAt(i % pass.length));
+            }
+            return result;
+        }
+
+        // Utility: Convert string to binary array
+        function strToBin(str) {
+            let bin = [];
+            for (let i = 0; i < str.length; i++) {
+                let charCode = str.charCodeAt(i);
+                for (let j = 7; j >= 0; j--) {
+                    bin.push((charCode >> j) & 1);
+                }
+            }
+            return bin;
+        }
+
+        // Utility: Convert binary array to string
+        function binToStr(bin) {
+            let str = '';
+            for (let i = 0; i < bin.length; i += 8) {
+                let byte = 0;
+                for (let j = 0; j < 8; j++) {
+                    byte = (byte << 1) | bin[i + j];
+                }
+                if (byte === 0) break; // Null terminator
+                str += String.fromCharCode(byte);
+            }
+            return str;
+        }
+
+        function encode() {
+            const fileInput = document.getElementById('encode-file');
+            const text = document.getElementById('secret-msg').value;
+            const pass = document.getElementById('encode-pass').value;
+            
+            if (!fileInput.files[0] || !text) {
+                alert("Image and Message are required.");
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.getElementById('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0);
+
+                    const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    const data = imgData.data;
+
+                    // Prepare Payload
+                    // 1. Encrypt text
+                    let cipherText = xorCipher(text, pass);
+                    // 2. Add special terminator chars (so we know when to stop reading)
+                    cipherText += String.fromCharCode(0, 0, 0); 
+                    // 3. Convert to bits
+                    const bits = strToBin(cipherText);
+
+                    // Check capacity
+                    if (bits.length > data.length / 4 * 3) {
+                        alert("Message too long for this image size.");
+                        return;
+                    }
+
+                    // Inject bits into LSB of RGB channels
+                    let bitIdx = 0;
+                    for (let i = 0; i < data.length; i += 4) {
+                        if (bitIdx >= bits.length) break;
+                        
+                        // Modify R, G, B channels (skip Alpha at i+3)
+                        for (let j = 0; j < 3; j++) {
+                            if (bitIdx < bits.length) {
+                                // Clear LSB and set new bit
+                                data[i + j] = (data[i + j] & 254) | bits[bitIdx];
+                                bitIdx++;
+                            }
+                        }
+                    }
+
+                    ctx.putImageData(imgData, 0, 0);
+                    
+                    const downloadLink = document.getElementById('download-link');
+                    downloadLink.href = canvas.toDataURL('image/png');
+                    downloadLink.download = 'carrier_file.png';
+                    document.getElementById('download-area').classList.remove('hidden');
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(fileInput.files[0]);
+        }
+
+        function decode() {
+            const fileInput = document.getElementById('decode-file');
+            const pass = document.getElementById('decode-pass').value;
+
+            if (!fileInput.files[0]) {
+                alert("Please upload a PNG image.");
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.getElementById('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0);
+
+                    const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    const data = imgData.data;
+                    let bits = [];
+
+                    // Extract bits
+                    for (let i = 0; i < data.length; i += 4) {
+                        for (let j = 0; j < 3; j++) {
+                            bits.push(data[i + j] & 1);
+                        }
+                    }
+
+                    // Convert to string
+                    let rawText = binToStr(bits);
+                    
+                    // Decrypt
+                    try {
+                        let cleanText = xorCipher(rawText, pass);
+                        // Filter out garbage characters if key was wrong or no message found
+                        // (Simple heuristic: check if mostly printable ascii)
+                        
+                        const resultBox = document.getElementById('decode-result');
+                        const resultText = document.getElementById('result-text');
+                        
+                        if (cleanText.length > 0) {
+                            resultText.textContent = cleanText;
+                            resultBox.classList.remove('hidden');
+                        } else {
+                            alert("No hidden message found or wrong password.");
+                        }
+                    } catch (err) {
+                        alert("Decoding failed.");
+                    }
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(fileInput.files[0]);
+        }
+    </script>
+</body>
+</html>

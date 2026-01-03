@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRYPTO_VAULT // AES-256</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;700&display=swap');
+        
+        :root {
+            --amber: #ffb300;
+            --dark: #121212;
+            --panel: #1e1e1e;
+        }
+
+        body {
+            background-color: var(--dark);
+            color: var(--amber);
+            font-family: 'Chakra Petch', sans-serif;
+            background-image: 
+                repeating-linear-gradient(
+                    45deg,
+                    #1a1a1a,
+                    #1a1a1a 10px,
+                    #121212 10px,
+                    #121212 20px
+                );
+        }
+
+        .hazard-border {
+            border: 2px solid var(--amber);
+            position: relative;
+            background: var(--panel);
+            box-shadow: 0 0 15px rgba(255, 179, 0, 0.1);
+        }
+
+        .hazard-stripe {
+            height: 10px;
+            width: 100%;
+            background: repeating-linear-gradient(
+                -45deg,
+                var(--amber),
+                var(--amber) 10px,
+                black 10px,
+                black 20px
+            );
+        }
+
+        .vault-btn {
+            background: transparent;
+            border: 1px solid var(--amber);
+            color: var(--amber);
+            text-transform: uppercase;
+            font-weight: bold;
+            letter-spacing: 1px;
+            transition: all 0.2s;
+            clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+        }
+        .vault-btn:hover {
+            background: var(--amber);
+            color: black;
+            box-shadow: 0 0 20px var(--amber);
+        }
+        .vault-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .input-field {
+            background: #000;
+            border-bottom: 2px solid var(--amber);
+            color: white;
+            width: 100%;
+            padding: 10px;
+            outline: none;
+            font-family: monospace;
+        }
+        .input-field:focus {
+            background: #1a1a1a;
+        }
+
+        .status-light {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #333;
+            display: inline-block;
+            margin-right: 5px;
+        }
+        .status-light.active { background: var(--amber); box-shadow: 0 0 10px var(--amber); }
+        
+        .mode-switch {
+            display: flex;
+            margin-bottom: 20px;
+            border: 1px solid var(--amber);
+        }
+        .mode-opt {
+            flex: 1;
+            text-align: center;
+            padding: 10px;
+            cursor: pointer;
+            opacity: 0.5;
+        }
+        .mode-opt.selected {
+            background: var(--amber);
+            color: black;
+            opacity: 1;
+            font-weight: bold;
+        }
+
+        #drop-area.drag-over {
+            background: rgba(255, 179, 0, 0.2);
+            border-style: solid;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-4">
+
+    <div class="w-full max-w-md hazard-border p-1">
+        <div class="hazard-stripe mb-4"></div>
+        
+        <div class="p-6">
+            <header class="flex justify-between items-center mb-6">
+                <h1 class="text-2xl font-bold">CRYPTO_VAULT</h1>
+                <div class="text-xs border border-amber-500 px-2 py-1">AES-GCM-256</div>
+            </header>
+
+            <div class="mode-switch">
+                <div class="mode-opt selected" onclick="setMode('encrypt')" id="btn-enc">LOCK</div>
+                <div class="mode-opt" onclick="setMode('decrypt')" id="btn-dec">UNLOCK</div>
+            </div>
+
+            <!-- File Input -->
+            <div id="drop-area" class="border-2 border-dashed border-amber-500/50 h-32 flex flex-col items-center justify-center cursor-pointer mb-6 transition-all text-center p-4">
+                <p class="text-sm font-bold mb-1" id="drop-text">DROP FILE TO ENCRYPT</p>
+                <p class="text-xs opacity-50" id="file-name">NO FILE SELECTED</p>
+                <input type="file" id="file-input" class="hidden">
+            </div>
+
+            <!-- Password -->
+            <div class="mb-6">
+                <label class="text-xs font-bold block mb-2">ACCESS KEY</label>
+                <input type="password" id="password" class="input-field" placeholder="ENTER STRONG PASSPHRASE">
+            </div>
+
+            <!-- Action -->
+            <button id="action-btn" onclick="processFile()" class="vault-btn w-full py-4 text-lg mb-4">
+                INITIATE LOCK
+            </button>
+
+            <!-- Log -->
+            <div class="bg-black p-2 text-xs font-mono h-20 overflow-y-auto border border-gray-800 text-gray-400" id="console">
+                > SYSTEM READY...<br>
+                > WAITING FOR INPUT...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentMode = 'encrypt';
+        let currentFile = null;
+        const dropArea = document.getElementById('drop-area');
+        const fileInput = document.getElementById('file-input');
+        const consoleDiv = document.getElementById('console');
+
+        function log(msg) {
+            consoleDiv.innerHTML += `> ${msg}<br>`;
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        }
+
+        function setMode(mode) {
+            currentMode = mode;
+            document.getElementById('btn-enc').className = `mode-opt ${mode === 'encrypt' ? 'selected' : ''}`;
+            document.getElementById('btn-dec').className = `mode-opt ${mode === 'decrypt' ? 'selected' : ''}`;
+            
+            const text = mode === 'encrypt' ? 'DROP FILE TO ENCRYPT' : 'DROP .LOCK FILE';
+            document.getElementById('drop-text').textContent = text;
+            document.getElementById('action-btn').textContent = mode === 'encrypt' ? 'INITIATE LOCK' : 'INITIATE UNLOCK';
+            
+            log(`MODE SWITCHED TO: ${mode.toUpperCase()}`);
+        }
+
+        // Drag & Drop
+        dropArea.addEventListener('click', () => fileInput.click());
+        dropArea.addEventListener('dragover', (e) => { e.preventDefault(); dropArea.classList.add('drag-over'); });
+        dropArea.addEventListener('dragleave', () => dropArea.classList.remove('drag-over'));
+        dropArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropArea.classList.remove('drag-over');
+            if(e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+        });
+        fileInput.addEventListener('change', (e) => {
+            if(e.target.files[0]) handleFile(e.target.files[0]);
+        });
+
+        function handleFile(file) {
+            currentFile = file;
+            document.getElementById('file-name').textContent = file.name;
+            log(`FILE LOADED: ${file.name} (${(file.size/1024).toFixed(1)} KB)`);
+        }
+
+        async function processFile() {
+            const password = document.getElementById('password').value;
+            if (!currentFile || !password) {
+                log('ERROR: MISSING FILE OR PASSWORD');
+                return;
+            }
+
+            const btn = document.getElementById('action-btn');
+            btn.disabled = true;
+            btn.textContent = 'PROCESSING...';
+
+            try {
+                if (currentMode === 'encrypt') {
+                    await encryptFile(currentFile, password);
+                } else {
+                    await decryptFile(currentFile, password);
+                }
+            } catch (err) {
+                log(`CRITICAL ERROR: ${err.message}`);
+                alert('Operation failed. Check password or file integrity.');
+            }
+            
+            btn.disabled = false;
+            btn.textContent = currentMode === 'encrypt' ? 'INITIATE LOCK' : 'INITIATE UNLOCK';
+        }
+
+        // CRYPTO FUNCTIONS
+        
+        // Generate key from password using PBKDF2
+        async function getKeyMaterial(password) {
+            const enc = new TextEncoder();
+            return window.crypto.subtle.importKey(
+                "raw",
+                enc.encode(password),
+                { name: "PBKDF2" },
+                false,
+                ["deriveBits", "deriveKey"]
+            );
+        }
+
+        async function getKey(keyMaterial, salt) {
+            return window.crypto.subtle.deriveKey(
+                {
+                    name: "PBKDF2",
+                    salt: salt,
+                    iterations: 100000,
+                    hash: "SHA-256"
+                },
+                keyMaterial,
+                { name: "AES-GCM", length: 256 },
+                true,
+                ["encrypt", "decrypt"]
+            );
+        }
+
+        async function encryptFile(file, password) {
+            log('GENERATING SALT & IV...');
+            const salt = window.crypto.getRandomValues(new Uint8Array(16));
+            const iv = window.crypto.getRandomValues(new Uint8Array(12));
+            
+            log('DERIVING KEYS...');
+            const keyMaterial = await getKeyMaterial(password);
+            const key = await getKey(keyMaterial, salt);
+
+            const fileData = await file.arrayBuffer();
+            
+            log('ENCRYPTING DATA BLOCKS...');
+            const encryptedContent = await window.crypto.subtle.encrypt(
+                { name: "AES-GCM", iv: iv },
+                key,
+                fileData
+            );
+
+            // Pack everything: Salt (16) + IV (12) + Encrypted Data
+            const blob = new Blob([salt, iv, encryptedContent], { type: 'application/octet-stream' });
+            
+            download(blob, `${file.name}.lock`);
+            log('ENCRYPTION COMPLETE. DOWNLOADING...');
+        }
+
+        async function decryptFile(file, password) {
+            log('READING FILE STRUCTURE...');
+            const fileData = await file.arrayBuffer();
+            
+            // Extract parts
+            const salt = fileData.slice(0, 16);
+            const iv = fileData.slice(16, 28);
+            const data = fileData.slice(28);
+
+            log('DERIVING KEYS...');
+            const keyMaterial = await getKeyMaterial(password);
+            const key = await getKey(keyMaterial, salt);
+
+            log('DECRYPTING DATA BLOCKS...');
+            try {
+                const decryptedContent = await window.crypto.subtle.decrypt(
+                    { name: "AES-GCM", iv: iv },
+                    key,
+                    data
+                );
+
+                // Try to guess original name by removing .lock
+                let originalName = file.name.replace('.lock', '');
+                if (originalName === file.name) originalName = 'unlocked_file';
+
+                const blob = new Blob([decryptedContent]);
+                download(blob, originalName);
+                log('DECRYPTION SUCCESSFUL.');
+            } catch (e) {
+                throw new Error("WRONG PASSWORD OR CORRUPTED FILE");
+            }
+        }
+
+        function download(blob, filename) {
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEXUS_PRIVACY // DASHBOARD</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+        :root {
+            --bg-color: #050505;
+            --grid-color: rgba(255, 255, 255, 0.05);
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: #e0e0e0;
+            font-family: 'Share Tech Mono', monospace;
+            overflow-x: hidden;
+            background-image: 
+                linear-gradient(var(--grid-color) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+
+        /* CRT Scanline Effect */
+        .scanlines {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.2));
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 50;
+            opacity: 0.6;
+        }
+
+        .glow-text {
+            text-shadow: 0 0 10px currentColor;
+        }
+
+        /* Card Styles */
+        .module-card {
+            background: rgba(10, 10, 10, 0.8);
+            border: 1px solid #333;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(5px);
+        }
+
+        .module-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 2px;
+            background: currentColor;
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.3s ease;
+        }
+
+        .module-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px -10px rgba(0,0,0,0.8);
+            border-color: currentColor;
+        }
+
+        .module-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .module-icon {
+            transition: transform 0.3s;
+        }
+        .module-card:hover .module-icon {
+            transform: scale(1.1);
+        }
+
+        /* Specific Colors */
+        .theme-purple { color: #a855f7; } /* Steganography */
+        .theme-amber { color: #f59e0b; }  /* Encryption */
+        .theme-cyan { color: #06b6d4; }   /* Link Detox */
+        .theme-green { color: #22c55e; }  /* Meta Wipe */
+
+        .btn-launch {
+            border: 1px solid currentColor;
+            background: transparent;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            transition: all 0.2s;
+        }
+        .btn-launch:hover {
+            background: currentColor;
+            color: #000;
+            box-shadow: 0 0 15px currentColor;
+        }
+
+        .blink { animation: blinker 1.5s linear infinite; }
+        @keyframes blinker { 50% { opacity: 0; } }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col p-4 md:p-8">
+    <div class="scanlines"></div>
+
+    <!-- Header -->
+    <header class="mb-12 border-b border-gray-800 pb-4 flex flex-col md:flex-row justify-between items-end">
+        <div>
+            <h1 class="text-4xl md:text-6xl font-bold tracking-tighter mb-2">
+                NEXUS_<span class="text-red-600">PRIVACY</span>
+            </h1>
+            <p class="text-gray-500 text-sm">
+                > SYSTEM STATUS: <span class="text-green-500">ONLINE</span><br>
+                > OPERATOR: <span class="blink">ANONYMOUS</span>
+            </p>
+        </div>
+        <div class="text-right mt-4 md:mt-0">
+            <div class="text-xs text-gray-600">CURRENT SESSION ID</div>
+            <div class="font-mono text-xl text-gray-400" id="session-id">LOADING...</div>
+        </div>
+    </header>
+
+    <!-- Grid -->
+    <main class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-6xl mx-auto w-full flex-grow">
+        
+        <!-- Module 1: Steganography -->
+        <div class="module-card theme-purple p-6 flex flex-col justify-between group">
+            <div>
+                <div class="flex justify-between items-start mb-4">
+                    <h2 class="text-2xl font-bold">DEAD_DROP</h2>
+                    <span class="border border-purple-500 text-xs px-2 py-1 opacity-50">v2.1</span>
+                </div>
+                <p class="text-gray-400 text-sm mb-6 leading-relaxed">
+                    LSB STEGANOGRAPHY UNIT. Inject sensitive payload into PNG carrier files. Invisible to the naked eye.
+                </p>
+            </div>
+            <div class="flex items-center justify-between mt-4">
+                <div class="text-xs text-purple-900 group-hover:text-purple-400 transition-colors">
+                    // STATUS: READY
+                </div>
+                <a href="deaddropsteganography.html" class="btn-launch px-6 py-2 text-sm font-bold no-underline">
+                    INITIATE
+                </a>
+            </div>
+        </div>
+
+        <!-- Module 2: Encryption -->
+        <div class="module-card theme-amber p-6 flex flex-col justify-between group">
+            <div>
+                <div class="flex justify-between items-start mb-4">
+                    <h2 class="text-2xl font-bold">CRYPTO_VAULT</h2>
+                    <span class="border border-amber-500 text-xs px-2 py-1 opacity-50">AES-256</span>
+                </div>
+                <p class="text-gray-400 text-sm mb-6 leading-relaxed">
+                    MILITARY GRADE ENCRYPTION. Secure local files with AES-GCM-256. Client-side processing only.
+                </p>
+            </div>
+            <div class="flex items-center justify-between mt-4">
+                <div class="text-xs text-amber-900 group-hover:text-amber-400 transition-colors">
+                    // STATUS: SECURE
+                </div>
+                <a href="fileencryptor.html" class="btn-launch px-6 py-2 text-sm font-bold no-underline">
+                    ACCESS
+                </a>
+            </div>
+        </div>
+
+        <!-- Module 3: Link Detox -->
+        <div class="module-card theme-cyan p-6 flex flex-col justify-between group">
+            <div>
+                <div class="flex justify-between items-start mb-4">
+                    <h2 class="text-2xl font-bold">LINK_DETOX</h2>
+                    <span class="border border-cyan-500 text-xs px-2 py-1 opacity-50">SANITIZER</span>
+                </div>
+                <p class="text-gray-400 text-sm mb-6 leading-relaxed">
+                    URL SCRUBBING PROTOCOL. Strip tracking parameters (UTM, FBCLID) and surveillance tags from shared links.
+                </p>
+            </div>
+            <div class="flex items-center justify-between mt-4">
+                <div class="text-xs text-cyan-900 group-hover:text-cyan-400 transition-colors">
+                    // STATUS: ACTIVE
+                </div>
+                <a href="linkdetoxtool.html" class="btn-launch px-6 py-2 text-sm font-bold no-underline">
+                    CLEANSE
+                </a>
+            </div>
+        </div>
+
+        <!-- Module 4: Metadata Wipe -->
+        <div class="module-card theme-green p-6 flex flex-col justify-between group">
+            <div>
+                <div class="flex justify-between items-start mb-4">
+                    <h2 class="text-2xl font-bold">META_WIPE</h2>
+                    <span class="border border-green-500 text-xs px-2 py-1 opacity-50">EXIF-KILL</span>
+                </div>
+                <p class="text-gray-400 text-sm mb-6 leading-relaxed">
+                    DIGITAL FOOTPRINT ERASER. Remove EXIF data, GPS coordinates, and camera serials from image files.
+                </p>
+            </div>
+            <div class="flex items-center justify-between mt-4">
+                <div class="text-xs text-green-900 group-hover:text-green-400 transition-colors">
+                    // STATUS: STANDBY
+                </div>
+                <a href="metadatawipertool.html" class="btn-launch px-6 py-2 text-sm font-bold no-underline">
+                    PURGE
+                </a>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="mt-12 border-t border-gray-800 pt-4 text-center text-xs text-gray-600 uppercase tracking-widest">
+        <p>No Logs. No Masters. <span class="text-red-900">Fight the machine.</span></p>
+        <p class="mt-2 opacity-30">Build: 2024.10.05 // NEXUS_CORE</p>
+    </footer>
+
+    <script>
+        // Generate a fake session ID for flavor
+        document.getElementById('session-id').innerText = 
+            '0x' + Math.floor(Math.random()*16777215).toString(16).toUpperCase().padStart(6, '0') + 
+            '-' + Math.floor(Date.now() / 1000);
+    </script>
+</body>
+</html>

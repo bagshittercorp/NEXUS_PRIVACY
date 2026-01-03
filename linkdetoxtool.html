@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LINK_DETOX // URL_SCRUBBER</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');
+        
+        :root {
+            --neon-cyan: #00f3ff;
+            --dark-bg: #050a0a;
+            --panel-bg: #0a1414;
+        }
+
+        body {
+            background-color: var(--dark-bg);
+            color: var(--neon-cyan);
+            font-family: 'Space Mono', monospace;
+            overflow-x: hidden;
+        }
+
+        .grid-bg {
+            background-image: 
+                linear-gradient(rgba(0, 243, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 243, 255, 0.05) 1px, transparent 1px);
+            background-size: 30px 30px;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            z-index: -1;
+        }
+
+        .cyber-box {
+            border: 1px solid var(--neon-cyan);
+            background: rgba(0, 243, 255, 0.02);
+            box-shadow: 0 0 10px rgba(0, 243, 255, 0.1);
+            position: relative;
+        }
+
+        .cyber-box::before {
+            content: '';
+            position: absolute;
+            top: -1px; left: -1px;
+            width: 10px; height: 10px;
+            border-top: 2px solid var(--neon-cyan);
+            border-left: 2px solid var(--neon-cyan);
+        }
+        .cyber-box::after {
+            content: '';
+            position: absolute;
+            bottom: -1px; right: -1px;
+            width: 10px; height: 10px;
+            border-bottom: 2px solid var(--neon-cyan);
+            border-right: 2px solid var(--neon-cyan);
+        }
+
+        .cyber-input {
+            background: transparent;
+            border: none;
+            color: white;
+            width: 100%;
+            outline: none;
+            font-family: 'Space Mono', monospace;
+        }
+
+        .btn-cyan {
+            background: rgba(0, 243, 255, 0.1);
+            border: 1px solid var(--neon-cyan);
+            color: var(--neon-cyan);
+            text-transform: uppercase;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+        .btn-cyan:hover {
+            background: var(--neon-cyan);
+            color: black;
+            box-shadow: 0 0 20px var(--neon-cyan);
+        }
+
+        .tracker-tag {
+            font-size: 0.7rem;
+            background: rgba(255, 50, 50, 0.2);
+            border: 1px solid #ff3232;
+            color: #ff3232;
+            padding: 2px 6px;
+            margin-right: 4px;
+            display: inline-block;
+            margin-bottom: 4px;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 40px;
+            height: 20px;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #1a2e2e;
+            transition: .4s;
+            border: 1px solid #333;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 14px;
+            width: 14px;
+            left: 2px;
+            bottom: 2px;
+            background-color: #555;
+            transition: .4s;
+        }
+        input:checked + .slider { background-color: rgba(0, 243, 255, 0.3); border-color: var(--neon-cyan); }
+        input:checked + .slider:before { transform: translateX(20px); background-color: var(--neon-cyan); }
+
+        @keyframes pulse-scan {
+            0% { box-shadow: 0 0 5px var(--neon-cyan); }
+            50% { box-shadow: 0 0 20px var(--neon-cyan); }
+            100% { box-shadow: 0 0 5px var(--neon-cyan); }
+        }
+        .processing { animation: pulse-scan 1s infinite; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-4">
+    <div class="grid-bg"></div>
+
+    <div class="w-full max-w-2xl">
+        <header class="mb-8 flex justify-between items-end border-b border-cyan-900 pb-2">
+            <div>
+                <h1 class="text-3xl font-bold tracking-widest">LINK_DETOX</h1>
+                <p class="text-xs text-cyan-600">URL SANITIZATION UNIT</p>
+            </div>
+            <div class="text-right text-xs">
+                <div class="flex items-center gap-2 mb-1">
+                    <span>AGGRESSIVE MODE</span>
+                    <label class="switch">
+                        <input type="checkbox" id="aggressive-mode">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <span class="text-gray-500 text-[10px]">STRIPS ALL PARAMS IF ACTIVE</span>
+            </div>
+        </header>
+
+        <!-- Input Section -->
+        <div class="cyber-box p-6 mb-6" id="input-box">
+            <label class="text-xs text-cyan-600 block mb-2">>> INSERT INFECTED URL</label>
+            <textarea id="url-input" rows="3" class="cyber-input text-sm resize-none" placeholder="https://example.com/page?utm_source=facebook&fbclid=IwAR2..."></textarea>
+        </div>
+
+        <!-- Action -->
+        <div class="flex justify-center mb-6">
+            <button onclick="detoxify()" class="btn-cyan px-8 py-3 tracking-widest text-lg clip-path-polygon">
+                INITIATE CLEANSE
+            </button>
+        </div>
+
+        <!-- Output Section -->
+        <div id="result-area" class="hidden opacity-0 transition-opacity duration-500">
+            <div class="cyber-box p-6 mb-4 bg-opacity-50 bg-black">
+                <div class="flex justify-between mb-2">
+                    <label class="text-xs text-green-400">>> CLEAN URL GENERATED</label>
+                    <span id="reduction-stat" class="text-xs text-gray-500"></span>
+                </div>
+                <div class="flex gap-2">
+                    <input type="text" id="clean-output" class="cyber-input text-green-400 font-bold" readonly>
+                    <button onclick="copyToClipboard()" class="text-xs border border-cyan-900 px-2 hover:bg-cyan-900 hover:text-white transition-colors">COPY</button>
+                </div>
+            </div>
+
+            <!-- Threat Log -->
+            <div class="border-l-2 border-red-900 pl-4 py-2">
+                <p class="text-xs text-red-500 mb-2">NEUTRALIZED THREATS:</p>
+                <div id="threat-log" class="flex flex-wrap">
+                    <!-- Tags go here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Known trackers list (Standard Mode)
+        const KNOWN_TRACKERS = [
+            'fbclid', 'gclid', 'ttclid', 'twclid', 'yclid', 'igshid', // Social Click IDs
+            'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', // Analytics
+            '_ga', '_gl', 'mc_eid', 'mc_cid', // Google / Mailchimp
+            'vero_id', 'vero_conv', 'wickedid', 'wickedsource', // Marketing
+            'ref', 'source', 'feature', 'share' // Generic
+        ];
+
+        function detoxify() {
+            const input = document.getElementById('url-input').value.trim();
+            const inputBox = document.getElementById('input-box');
+            const resultArea = document.getElementById('result-area');
+            const output = document.getElementById('clean-output');
+            const log = document.getElementById('threat-log');
+            const aggressive = document.getElementById('aggressive-mode').checked;
+            const reductionStat = document.getElementById('reduction-stat');
+
+            if (!input) return;
+
+            // Visual FX
+            inputBox.classList.add('processing');
+            setTimeout(() => inputBox.classList.remove('processing'), 500);
+
+            try {
+                let urlObj = new URL(input);
+                let params = urlObj.searchParams;
+                let removed = [];
+                let originalLength = input.length;
+
+                if (aggressive) {
+                    // Nuclear option: Remove everything
+                    for (const [key, value] of params.entries()) {
+                        removed.push(key);
+                    }
+                    urlObj.search = '';
+                } else {
+                    // Surgical option: Remove known trackers
+                    // We need to iterate over a copy of keys because we are deleting them
+                    const keys = Array.from(params.keys());
+                    
+                    keys.forEach(key => {
+                        if (KNOWN_TRACKERS.some(tracker => key.toLowerCase().startsWith(tracker))) {
+                            removed.push(key);
+                            params.delete(key);
+                        }
+                    });
+                }
+
+                // Display Results
+                output.value = urlObj.toString();
+                
+                // Update Log
+                log.innerHTML = '';
+                if (removed.length > 0) {
+                    removed.forEach(tag => {
+                        const span = document.createElement('span');
+                        span.className = 'tracker-tag';
+                        span.textContent = tag.toUpperCase();
+                        log.appendChild(span);
+                    });
+                } else {
+                    log.innerHTML = '<span class="text-xs text-gray-600">NO THREATS DETECTED (OR URL ALREADY CLEAN)</span>';
+                }
+
+                // Stats
+                const newLength = output.value.length;
+                const percent = Math.round(((originalLength - newLength) / originalLength) * 100);
+                if(percent > 0) {
+                    reductionStat.textContent = `PAYLOAD REDUCED BY ${percent}%`;
+                } else {
+                    reductionStat.textContent = `NO CHANGE`;
+                }
+
+                resultArea.classList.remove('hidden');
+                // Trigger reflow for transition
+                void resultArea.offsetWidth; 
+                resultArea.classList.remove('opacity-0');
+
+            } catch (e) {
+                alert("INVALID URL DETECTED. PLEASE INCLUDE 'HTTP://' OR 'HTTPS://'");
+            }
+        }
+
+        function copyToClipboard() {
+            const copyText = document.getElementById("clean-output");
+            copyText.select();
+            copyText.setSelectionRange(0, 99999); 
+            navigator.clipboard.writeText(copyText.value);
+            
+            const btn = event.target;
+            const originalText = btn.textContent;
+            btn.textContent = "COPIED";
+            setTimeout(() => btn.textContent = originalText, 2000);
+        }
+    </script>
+</body>
+</html>
